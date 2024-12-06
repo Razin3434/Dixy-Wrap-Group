@@ -24,9 +24,9 @@ public class HelloController {
     private DbFunction db = new DbFunction();
     private Connection conn;
 
-    String DBNAME = "prototype2";
-    String USERNAME = "bek2";
-    String PASSWORD = "1234";
+    String DBNAME = "gamification";
+    String USERNAME = "postgres";
+    String PASSWORD = "R@z!n3434";
 
     @FXML
     public void initialize() {
