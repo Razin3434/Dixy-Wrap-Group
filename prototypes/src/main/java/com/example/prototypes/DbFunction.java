@@ -147,7 +147,13 @@ public class DbFunction {
             System.out.println("Data updated");
         } catch (Exception e) {
 
+
         }
+
+        String userPoint = "SELECT current_points FROM user_points WHERE user_id = ?";
+        String voucherPoint = "SELECT points_needed FROM voucher WHERE voucher_id = ?";
+        String insertTrans = "INSERT INTO transaction (user_id,transaction_date, transaction_time, points_earned, points_spent, transaction_name) VALUES (?,?,?, ?, ?, ?)";
+
 
     }
 
@@ -163,6 +169,67 @@ public class DbFunction {
                 System.out.print(rs.getString("empid") + " ");
                 System.out.print(rs.getString("name") + " ");
                 System.out.println(rs.getString("address") + " ");
+            conn.setAutoCommit(false);
+
+            int currentPoints;
+            try (PreparedStatement userStmt = conn.prepareStatement(userPoint)) {
+                userStmt.setInt(1, userId);
+                try (ResultSet rs = userStmt.executeQuery()) {
+                    if (rs.next()) {
+                        currentPoints = rs.getInt("current_points");
+                    } else {
+                        System.out.println("User not found");
+                        return false;
+                    }
+                }
+            }
+
+            int voucherPoints;
+            try (PreparedStatement voucherStmt = conn.prepareStatement(voucherPoint)) {
+
+                voucherStmt.setInt(1, voucherId);
+                try (ResultSet rs = voucherStmt.executeQuery()) {
+                    if (rs.next()) {
+                        voucherPoints = rs.getInt("points_needed");
+                    } else {
+                        System.out.println("Voucher not found");
+                        return false;
+                    }
+                }
+            }
+
+            if (currentPoints >= voucherPoints) {
+                try (PreparedStatement insertStmt = conn.prepareStatement(insertTrans)) {
+                    insertStmt.setInt(1, userId);
+                    insertStmt.setDate(2, currentDate);// User ID
+                    insertStmt.setTimestamp(3, currentTime); // Transaction date and time
+                    insertStmt.setInt(4, 0);            // Points earned
+                    insertStmt.setInt(5, voucherPoints);             // Points spent
+                    insertStmt.setString(6, "Voucher Redeemed"); // Transaction name
+                    insertStmt.executeUpdate();
+                }
+                conn.commit(); // Commit transaction
+                success = true;
+                System.out.println("Voucher redeemed successfully!");
+            } else {
+                System.out.println("Not enough points");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            if (conn != null) {
+                try {
+                    conn.rollback(); // Rollback transaction on error
+                    System.out.println("Transaction rolled back.");
+                } catch (SQLException rollbackEx) {
+                    rollbackEx.printStackTrace();
+                }
+            }
+
+        } finally {
+            try {
+                conn.setAutoCommit(true); // Reset auto-commit
+            } catch (SQLException resetEx) {
+                resetEx.printStackTrace();
             }
         } catch(Exception e) {
             System.out.println(e);
